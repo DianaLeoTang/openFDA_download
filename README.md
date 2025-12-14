@@ -245,3 +245,66 @@ shortages_url = "https://download.open.fda.gov/drug/shortages/drug-shortages-000
 ## 许可证
 
 数据使用需遵循: http://open.fda.gov/license
+
+#
+这是 openFDA 的 **Download API**，用于批量下载数据。让我帮你理解如何使用：
+
+## 基本用法
+
+### 1. 获取可下载文件列表
+```bash
+# 查询某个端点的可下载文件
+curl "https://api.fda.gov/download.json"
+```
+
+### 2. 解析返回的 JSON
+返回的数据结构：
+- `meta`: 包含免责声明和最后更新时间
+- `results`: 包含各个数据集的下载信息
+
+### 3. 下载具体文件
+从 `partitions` 数组中获取文件 URL，例如：
+```bash
+# 下载特定文件
+wget "http://download.open.fda.gov/device/event/2012q2/device-event-0001-of-0001.json.zip"
+
+# 或使用 curl
+curl -O "http://download.open.fda.gov/device/event/2012q2/device-event-0001-of-0001.json.zip"
+```
+
+## Python 示例
+
+```python
+import requests
+import json
+
+# 1. 获取下载信息
+response = requests.get('https://api.fda.gov/download.json')
+data = response.json()
+
+# 2. 查看设备事件数据
+device_events = data['results']['device']['event']
+print(f"总记录数: {device_events['total_records']}")
+print(f"导出日期: {device_events['export_date']}")
+
+# 3. 下载第一个文件
+first_file = device_events['partitions'][0]
+file_url = first_file['file']
+print(f"下载文件: {first_file['display_name']}")
+print(f"文件大小: {first_file['size_mb']} MB")
+print(f"记录数: {first_file['records']}")
+
+# 下载文件
+file_response = requests.get(file_url)
+with open('device-event.zip', 'wb') as f:
+    f.write(file_response.content)
+```
+
+## 注意事项
+
+1. **数据量大**: 某些端点有几十个文件，下载前检查总大小
+2. **ZIP 格式**: 下载的文件是 `.json.zip`，需要解压
+3. **批量处理**: 可以循环下载所有 partitions
+4. **Beta 版本**: openFDA 标注为研究项目，不用于临床
+
+这个 API 主要用于**批量下载历史数据**，如果需要实时查询，应该使用常规的查询 API（如 `https://api.fda.gov/device/event.json?search=...`）。
